@@ -363,7 +363,7 @@ class QEventLoop(_baseclass):
 		notifier.setEnabled(True)
 		self._logger.debug('Adding reader callback for file descriptor {}'.format(fd))
 		notifier.activated.connect(
-			lambda: self.__on_notifier_ready(notifier, fd, callback, args)
+			lambda: self.__on_notifier_ready('read', self._read_notifiers, notifier, fd, callback, args)
 		)
 		self._read_notifiers[fd] = notifier
 
@@ -385,7 +385,7 @@ class QEventLoop(_baseclass):
 		notifier.setEnabled(True)
 		self._logger.debug('Adding writer callback for file descriptor {}'.format(fd))
 		notifier.activated.connect(
-			lambda: self.__on_notifier_ready(notifier, fd, callback, args)
+			lambda: self.__on_notifier_ready('write', self._write_notifiers, notifier, fd, callback, args)
 		)
 		self._write_notifiers[fd] = notifier
 
@@ -401,11 +401,11 @@ class QEventLoop(_baseclass):
 		else:
 			notifier.setEnabled(False)
 
-	def __on_notifier_ready(self, notifier, fd, callback, args):
-		if fd not in self._read_notifiers and fd not in self._write_notifiers:
+	def __on_notifier_ready(self, action, notifiers, notifier, fd, callback, args):
+		if fd not in notifiers:
 			self._logger.warning(
-				'Socket notifier for fd {} is ready, even though it should be disabled, not calling {} and disabling'
-				.format(fd, callback)
+				'Socket {} notifier for fd {} is ready, even though it should be disabled, not calling {} '
+				'and disabling'.format(action, fd, callback)
 			)
 			notifier.setEnabled(False)
 			return
@@ -413,7 +413,7 @@ class QEventLoop(_baseclass):
 		# It can be necessary to disable QSocketNotifier when e.g. checking
 		# ZeroMQ sockets for events
 		assert notifier.isEnabled()
-		self._logger.debug('Socket notifier for fd {} is ready'.format(fd))
+		self._logger.debug('Socket {} notifier for fd {} is ready, invoking callback'.format(action, fd))
 		notifier.setEnabled(False)
 		try:
 			callback(*args)
