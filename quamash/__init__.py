@@ -363,7 +363,7 @@ class QEventLoop(_baseclass):
 		notifier.setEnabled(True)
 		self._logger.debug('Adding reader callback for file descriptor {}'.format(fd))
 		notifier.activated.connect(
-			lambda: self.__on_notifier_ready('read', self._read_notifiers, notifier, fd, callback, args)
+			lambda: self.__on_notifier_ready('read', notifier, fd, callback, args)
 		)
 		self._read_notifiers[fd] = notifier
 
@@ -385,7 +385,7 @@ class QEventLoop(_baseclass):
 		notifier.setEnabled(True)
 		self._logger.debug('Adding writer callback for file descriptor {}'.format(fd))
 		notifier.activated.connect(
-			lambda: self.__on_notifier_ready('write', self._write_notifiers, notifier, fd, callback, args)
+			lambda: self.__on_notifier_ready('write', notifier, fd, callback, args)
 		)
 		self._write_notifiers[fd] = notifier
 
@@ -401,7 +401,10 @@ class QEventLoop(_baseclass):
 		else:
 			notifier.setEnabled(False)
 
-	def __on_notifier_ready(self, action, notifiers, notifier, fd, callback, args):
+	def __on_notifier_ready(self, action, notifier, fd, callback, args):
+		assert action in ('read', 'write')
+		notifiers = self._read_notifiers if action == 'read' else self._write_notifiers
+
 		if fd not in notifiers:
 			self._logger.warning(
 				'Socket {} notifier for fd {} is ready, even though it should be disabled, not calling {} '
