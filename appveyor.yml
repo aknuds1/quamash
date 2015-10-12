@@ -1,0 +1,39 @@
+environment:
+
+  matrix:
+    - PYTHON: "C:\\Python34"
+      PYTHON_VERSION: "3.4.1"
+      PYTHON_ARCH: "32"
+      QTIMPL: "PySide"
+
+    - PYTHON: "C:\\Python34"
+      PYTHON_VERSION: "3.4.1"
+      PYTHON_ARCH: "32"
+      QTIMPL: "PyQt4"
+
+    - PYTHON: "C:\\Python34"
+      PYTHON_VERSION: "3.4.1"
+      PYTHON_ARCH: "32"
+      QTIMPL: "PyQt5"
+
+    - PYTHON: "C:\\Python33"
+      PYTHON_VERSION: "3.3.5"
+      PYTHON_ARCH: "32"
+      QTIMPL: "PySide"
+
+init:
+  - "ECHO %PYTHON% %PYTHON_VERSION% %PYTHON_ARCH% %QTIMPL%"
+
+install:
+  - "powershell appveyor\\install.ps1"
+
+build: off
+
+test_script:
+  - "%PYTHON%\\Scripts\\py.test.exe"
+
+notifications:
+  - provider: Webhook
+    url: https://webhooks.gitter.im/e/9723bec82b34a9f3faf0
+    on_build_success: false
+    on_build_failure: True

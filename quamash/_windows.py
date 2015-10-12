@@ -18,6 +18,8 @@ import math
 from . import QtCore
 from ._common import with_logger
 
+UINT32_MAX = 0xffffffff
+
 
 class _ProactorEventLoop(QtCore.QObject, asyncio.ProactorEventLoop):
 
@@ -37,7 +39,7 @@ class _ProactorEventLoop(QtCore.QObject, asyncio.ProactorEventLoop):
 				self._logger.debug('Invoking event callback {}'.format(callback))
 				value = callback(transferred, key, ov)
 			except OSError as e:
-				self._logger.warn('Event callback failed: {}'.format(e))
+				self._logger.warning('Event callback failed: {}'.format(e))
 				f.set_exception(e)
 			else:
 				f.set_result(value)
@@ -72,17 +74,15 @@ class _IocpProactor(windows_events.IocpProactor):
 
 	def _poll(self, timeout=None):
 		"""Override in order to handle events in a threadsafe manner."""
-		INFINITE = 0xffffffff
-
 		if timeout is None:
-			ms = INFINITE
+			ms = UINT32_MAX  # wait for eternity
 		elif timeout < 0:
 			raise ValueError("negative timeout")
 		else:
 			# GetQueuedCompletionStatus() has a resolution of 1 millisecond,
 			# round away from zero to wait *at least* timeout seconds.
 			ms = math.ceil(timeout * 1e3)
-			if ms >= INFINITE:
+			if ms >= UINT32_MAX:
 				raise ValueError("timeout too big")
 
 		while True:

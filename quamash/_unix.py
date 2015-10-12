@@ -2,7 +2,7 @@
 # © 2014 Arve Knudsen <arve.knudsen@gmail.com>
 # BSD License
 
-""" UNIX specific Quamash functionality. """
+"""UNIX specific Quamash functionality."""
 
 import asyncio
 from asyncio import selectors
@@ -73,7 +73,7 @@ class _Selector(selectors.BaseSelector):
 
 	def select(self, *args, **kwargs):
 		"""Implement abstract method even though we don't need it."""
-		raise NotImplemented
+		raise NotImplementedError
 
 	def _fileobj_lookup(self, fileobj):
 		"""Return a file descriptor from a file object.
