@@ -1,10 +1,10 @@
 # © 2014 Mark Harviston <mark.harviston@gmail.com>
 # © 2014 Arve Knudsen <arve.knudsen@gmail.com>
 # BSD License
-""" Implementation of the PEP 3156 Event-Loop with Qt. """
+"""Implementation of the PEP 3156 Event-Loop with Qt."""
 
 __author__ = 'Mark Harviston <mark.harviston@gmail.com>, Arve Knudsen <arve.knudsen@gmail.com>'
-__version__ = '0.4.1'
+__version__ = '0.5.3'
 __url__ = 'https://github.com/harvimt/quamash'
 __license__ = 'BSD'
 
@@ -142,7 +142,7 @@ class QThreadExecutor(QtCore.QObject):
 	def map(self, func, *iterables, timeout=None):
 		raise NotImplementedError("use as_completed on the event loop")
 
-	def shutdown(self):
+	def shutdown(self, wait=True):
 		if self.__been_shutdown:
 			raise RuntimeError("QThreadExecutor has been shutdown")
 
@@ -152,8 +152,9 @@ class QThreadExecutor(QtCore.QObject):
 		for i in range(len(self.__workers)):
 			# Signal workers to stop
 			self.__queue.put(None)
-		for w in self.__workers:
-			w.wait()
+		if wait:
+			for w in self.__workers:
+				w.wait()
 
 	def __enter__(self, *args):
 		if self.__been_shutdown:
@@ -278,12 +279,14 @@ class QEventLoop(_baseclass):
 		"""Run until Future is complete."""
 		self._logger.debug('Running {} until complete'.format(future))
 		future = asyncio.async(future, loop=self)
-		stop = lambda *args: self.stop()
+
+		def stop(*args): self.stop()  # noqa
 		future.add_done_callback(stop)
 		try:
 			self.run_forever()
 		finally:
 			future.remove_done_callback(stop)
+		self.__app.processEvents()  # run loop one last time to process all the events
 		if not future.done():
 			raise RuntimeError('Event loop stopped before Future completed.')
 
@@ -344,10 +347,14 @@ class QEventLoop(_baseclass):
 
 	def _add_callback(self, handle, delay=0):
 		def upon_timeout():
+			nonlocal timer
+			nonlocal handle
 			assert timer in self.__timers, 'Timer {} not among {}'.format(timer, self.__timers)
 			self.__timers.remove(timer)
+			timer = None
 			self._logger.debug('Callback timer fired, calling {}'.format(handle))
 			handle._run()
+			handle = None
 
 		self._logger.debug('Adding callback {} with delay {}'.format(handle, delay))
 		timer = QtCore.QTimer(self.__app)
@@ -491,11 +498,13 @@ class QEventLoop(_baseclass):
 				return f
 			callback, args = callback.callback, callback.args
 
-		executor = executor or self.__default_executor
+		if executor is None:
+			self._logger.debug('Using default executor')
+			executor = self.__default_executor
+
 		if executor is None:
 			self._logger.debug('Creating default executor')
 			executor = self.__default_executor = QThreadExecutor()
-		self._logger.debug('Using default executor')
 
 		return asyncio.wrap_future(executor.submit(callback, *args))
 

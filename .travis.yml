@@ -21,7 +21,7 @@ install:
   # Qt4
   - sudo apt-get install -y libqt4-dev
   # Qt5
-  - sudo add-apt-repository -y ppa:beineri/opt-qt54
+  - sudo add-apt-repository -y ppa:beineri/opt-qt541
   - sudo apt-get update
   - sudo apt-get install -y qt54base
   # Builds
@@ -58,12 +58,19 @@ install:
   # flake8 style checker
   - pip install flake8 pep8-naming flake8-debugger flake8-docstrings
 script:
+  - flake8
+  - flake8 --select=D1 quamash/*.py
   - QUAMASH_QTIMPL=PySide py.test
   - QUAMASH_QTIMPL=PyQt4 py.test
   - QUAMASH_QTIMPL=PyQt5 py.test
-  - flake8 --ignore=D1,W191,E501
-  - flake8 --select=D1 quamash/*.py
 cache:
   directories:
     - /downloads
   apt: true
+notifications:
+  webhooks:
+    urls:
+      - https://webhooks.gitter.im/e/0ed6fa8828890c4a49ea
+    on_success: change
+    on_failure: always
+    on_start: false
